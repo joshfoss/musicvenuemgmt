@@ -1,0 +1,24 @@
+{
+  "name": "music-venue-tools",
+  "version": "0.1.0",
+  "description": "Find, verify, research and rate live music venues for your band or solo act, using a shared, community-maintained venue master (Texas first).",
+  "author": {
+    "name": "Josh Foss"
+  },
+  "homepage": "https://github.com/joshfoss/musicvenuemgmt",
+  "repository": "https://github.com/joshfoss/musicvenuemgmt",
+  "keywords": [
+    "music",
+    "live music",
+    "venues",
+    "booking",
+    "gigs",
+    "bands"
+  ],
+  "mcpServers": {
+    "venue-master": {
+      "type": "http",
+      "url": "https://venue-master.jfoss.workers.dev/mcp"
+    }
+  }
+}

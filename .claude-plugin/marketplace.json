@@ -1,0 +1,16 @@
+{
+  "name": "musicvenuemgmt",
+  "owner": { "name": "Josh Foss" },
+  "metadata": {
+    "description": "Tools for musicians to find and rate live music venues, backed by a shared venue master."
+  },
+  "plugins": [
+    {
+      "name": "music-venue-tools",
+      "source": "./plugins/music-venue-tools",
+      "description": "Find, verify, research and rate live music venues for your band or solo act, using a shared, community-maintained venue master (Texas first).",
+      "version": "0.1.0",
+      "author": { "name": "Josh Foss" }
+    }
+  ]
+}
