@@ -40,19 +40,20 @@ Venues with Booking Notes "Not a gig venue" or "Not a music venue" always have S
 
 ## Look up venues
 
-- **Named venues:** `lookup_venues` with name, city, state and the address when known, up to 100 per call (split longer lists). The service normalizes names (case, punctuation, a leading "The", LLC/Inc, "&" vs "and") and returns, per venue:
+- **Named venues:** `lookup_venues` with name, city, state and the address when known, up to 100 per call (split longer lists). The service normalizes names (case, punctuation, initials such as "B.D." vs "BD", a leading "The", LLC/Inc, "&" vs "and") and also compares the distinctive part of each name (ignoring words like pub, bar, brewing, the city's name and "at <place>"), then returns, per venue:
   - **found:** use its facts.
   - **check_location:** same name, different address, or several locations in that city. Pick the right Venue ID by address; if it's still unclear, say so and treat the venue as not found for research.
-  - **possible:** a close name in the same city. Confirm with the address or website before treating it as found.
+  - **possible:** a close name in the same city, or a similar name listed under another city in the state (neighboring city, or the venue moved). Confirm with the address or website before treating it as found.
   - **not_found:** pass it to the next step (usually `live-music-check`).
 - **An area:** `find_venues` with state and county (or city), paging with next_offset. Use it to pull a region for research or rating.
 - **One venue in full:** `get_venue` with its Venue ID (all fields plus recent changes).
+- **Before saying a venue isn't in the master, or adding it:** also run `find_venues` with the state and `name_contains` set to the most distinctive word of the name (for example `riley` for "BD Riley's Irish Pub"; skip words like pub, bar, the, brewing and the city's name). Venues are often stored under a fuller or older name ("B.D. RILEY'S PUB AT MUELLER") or a neighboring city. If the search turns it up, confirm with the address or website and use that Venue ID. Only report "not in the master" when both the lookup and this search come up empty.
 
 Each result carries freshness flags: `evidence_stale` (no dated evidence, or older than 18 months) and `research_needed` (not researched in about six months). Stale records still count as found; the caller decides whether to recheck. For lists, report counts (found, check location, possible, not found) rather than listing every row in chat.
 
 ## Add a venue
 
-Only when `live-music-check` (or a confirmed dispute) has established live music, and only after a lookup came back not_found. Call `add_venue` with:
+Only when `live-music-check` (or a confirmed dispute) has established live music, and only after both the lookup and the name search above came up empty. Call `add_venue` with:
 
 - **Required:** business_name, city, state, music_source, source_type, evidence_date (within 18 months, or a dated musician report), confidence (High or Medium).
 - **County:** work it out from the street address (users rarely know it, and some cities span two counties). The service fills it only for cities already in the master, and rejects the add otherwise.
