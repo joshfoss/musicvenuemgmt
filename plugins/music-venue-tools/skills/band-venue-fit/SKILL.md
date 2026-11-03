@@ -92,7 +92,7 @@ Rate each act separately when the user has more than one. Two acts with identica
 A saved list or act analysis file is a snapshot. Refresh it when the user asks ("sync", "refresh", "update my list"), before rating or pitching from a list that hasn't been synced for a few weeks, or on a schedule the user sets up.
 
 1. **Read the sync state.** Keep it in the file itself: a small sheet named Sync with Last Synced (the as_of timestamp from the last check), State, and Counties or Cities if the list covers only part of a state. If there is no Sync sheet, this is the first refresh: leave Last Synced empty and take the area from the user's profile or the list's venues.
-2. **Check every Venue ID in one call.** Use the Venue Master connector's `check_venues` tool with all Venue IDs in the file, `since` = Last Synced, and the area (`state`, plus `counties` or `cities`). Only Venue IDs are sent: never send act names, ratings, bookings or addresses. If the tool isn't available, the connector needs reconnecting (or is older): tell the user, and fall back to `get_venue` for each ID.
+2. **Check every Venue ID in one call.** Use the Venue Master connector's `check_venues` tool with all Venue IDs in the file, `since` = Last Synced, and the area (`state`, plus `counties` or `cities`). Only Venue IDs are sent: never send act names, ratings, bookings or addresses. If the connector isn't in this session (common in scheduled runs) but a shell is, call the same tool on the public address with a short script: POST `https://venue-master.jfoss.workers.dev/mcp` with JSON-RPC `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"check_venues","arguments":{...}}}` and read `result.structuredContent`. If neither works, tell the user the connector needs adding or reconnecting.
 3. **Apply the results:**
    - **archived:** remove the row. If `replaced_by` is set (a duplicate), first move anything the user added that the kept row lacks (bookings, rate, notes, Performed) onto the replaced_by row, and never drop a row with Booked = Y or a rate without saying so.
    - **inactive** (Closed, Not actively booking, Possibly closed): keep the row and apply the blocking rule (Step 6): Closed or Not actively booking = X for every act, Possibly closed = cap at B. The default view hides X rows.
@@ -104,6 +104,12 @@ A saved list or act analysis file is a snapshot. Refresh it when the user asks (
 5. **Report briefly:** counts of removed, newly blocked, re-rated and added venues, the venues the user had booked or performed at that changed status, and anything that needs the user's decision.
 
 A refresh changes only the user's own file; the venue master is never edited by this step.
+
+**Keep it synced automatically (optional).** Offer once, after a user's first sync, to run this step weekly as a scheduled task. Ask which day and time suit them. The task needs the user's computer (the file lives there), so create it to run on their computer with the folder that holds the file. Its prompt must stand alone, because each run starts fresh:
+
+> Sync my venue act analysis: <path to the file>. Follow the band-venue-fit skill, Step 8: read the Sync sheet, call check_venues (through the Venue Master connector, or the public address if the connector isn't available), apply the results, save the new as_of to the Sync sheet and read the file back. Re-rate changed venues with the act profiles in <path to profiles>. If nothing changed, change nothing but Last Synced and reply only "Venue list: no changes since <date>." Otherwise reply with a short list of what changed and any venue the user booked or played that closed or changed status. Don't edit the venue master.
+
+Quiet weeks stay quiet: a run that finds nothing to change sends one line, so the user only needs to read the weeks with news.
 
 ## Privacy
 
