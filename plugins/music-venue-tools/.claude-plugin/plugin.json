@@ -1,6 +1,6 @@
 {
   "name": "music-venue-tools",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Find, verify, research and rate live music venues for your band or solo act, using a shared, community-maintained venue master (Texas first).",
   "author": {
     "name": "Josh Foss"
