@@ -52,11 +52,13 @@ Name a local source only after confirming it covers the area being searched. The
 
 ## Step 2 - Look up the dataset first
 
-Use the `venue-dataset` skill to look up every supplied venue in one pass (it matches on name, city, state and address, and handles chains and near-matches).
+Use the `venue-dataset` skill to look up every supplied venue in one pass, passing the address, website and phone when the user gave them (it matches on name, city, state and those details, and handles chains and near-matches).
 
 - **Found:** stop. The venue has live music; report it with its source and dates. If its evidence is older than about 18 months, say so and offer a recheck, but don't recheck unless asked.
 - **Found but closed or not booking** (per its Status): report that; no research.
-- **Not found, or location unclear:** continue with Steps 3 to 5.
+- **Possible match:** confirm it with the user as `venue-dataset` describes before treating it as found or researching it as new.
+- **Archived:** the venue was archived as closed or not booking (or was a removed duplicate). Report that, with the date, and don't research or add it. If the user says it has reopened, check for current evidence and, if it holds, file `report_status` with status Active on the archived Venue ID for the maintainer to restore it.
+- **Not found, or location unclear:** continue with Steps 3 to 5. A not-found here is provisional: Step 5 checks again with what research turns up before anything is added.
 
 ## Step 3 - Screen out unlikely venue types
 
@@ -75,7 +77,9 @@ Work in this order; stop at the first reasonable evidence.
    - `"<venue name>" <city> bandsintown OR songkick OR allevents OR reverbnation`
 4. **One fetch** of the single most promising result, only if the search titles aren't conclusive.
 
-**Search titles can be evidence.** A result title from an event platform, music directory or the venue's own listing that names the venue and a performer with a date (for example "Terry Hughes & The Debonaires LIVE at Backporch Social") is Medium evidence without opening the page. Open the page when the title is ambiguous, the venue name is common, or the location isn't clear.
+**Search results can be evidence.** A result from the venue's own website whose snippet says it hosts live music ("our stage hosts a curated lineup of local musicians") is High evidence without opening the page. A result title from an event platform, music directory or the venue's own listing that names the venue and a performer with a date (for example "Terry Hughes & The Debonaires LIVE at Backporch Social") is Medium evidence without opening the page. Open the page when the snippet is ambiguous, the venue name is common, or the location isn't clear.
+
+**Use the whole budget before answering.** If the first sources are suggestive but not conclusive, spend the remaining searches and fetch to settle it (for example, open the venue's events page) instead of offering the user to check further.
 
 **About social media:** most small venues advertise local music on Facebook and Instagram, which don't load for automated readers, and search tools generally ignore `site:facebook.com`. Use stand-ins: AllEvents mirrors many events venues post themselves; musicians' own calendars and ReverbNation, Bandsintown and JazzNearYou pages list small gigs that venues barely promote; local weekly calendars cover small-town acts.
 
@@ -85,7 +89,11 @@ Counts as live music: a band, singer-songwriter, acoustic or solo musician, live
 
 Does not count on its own: DJ, jukebox, karaoke, dancing, "music", "entertainment", a stage or sound system in photos, nightlife lists, or being a bar or brewery.
 
-- **Freshness:** a Y needs evidence from roughly the last 18 months. Older-only evidence = N with "historic only" in Check Notes.
+- **Freshness:** a Y needs current evidence.
+  - **The venue's own live website or events page describing live music as an ongoing program** (a recurring music night, "live music every Friday", "our stage hosts local musicians", a live music page) is current: Confidence High, Recurring Yes, Evidence Date = the date you checked it, because the page is published now.
+  - **A current listing that describes a recurring program** (a local calendar or event platform venue page, a city or tourism live music page) is current too: Confidence Medium, Evidence Date = the date checked.
+  - **Otherwise** the newest dated performance must be within about 18 months. Older-only evidence = N with "historic only" in Check Notes.
+  - **Stale-site guard:** a closure notice, a schedule dated years ago, or other signs the venue shut override a live music page. Sites can outlive their venues.
 - **Right venue, right location:** match name + city + address. A source with the right name but a different city or address doesn't count until the link is clear (moved, renamed, second location?).
 - **Chains:** evidence counts only for the location it names, unless the chain says all its locations have live music.
 - **Legal names:** license data often lists an LLC or holding company. Tie it to the public name through the address before using evidence.
@@ -96,14 +104,18 @@ Does not count on its own: DJ, jukebox, karaoke, dancing, "music", "entertainmen
 
 ## Step 5 - Decide and record
 
-- **Reasonable evidence (High or Medium):** Live Music = Y. Fill Music Source (the most direct link: an events page beats a homepage), Source Type, Evidence Date, Confidence, Recurring, Open Mic Only. Add the venue to the dataset through `venue-dataset`.
+- **Reasonable evidence (High or Medium):** Live Music = Y. Fill Music Source (the most direct link: an events page beats a homepage), Source Type, Evidence Date, Confidence, Recurring, Open Mic Only. Then:
+  1. **Check for an existing record again** through `venue-dataset` ("Before adding"), using what research found: the official name, street address, website and phone. Research often reveals that a venue the user named differently is already in the master.
+  2. **A match turns up:** don't add. Follow the confirmation steps in `venue-dataset`, and carry on with the existing record if the user confirms it.
+  3. **No match:** add the venue through `venue-dataset` straight away, without asking the user first, and tell them its new Venue ID.
+  4. **One venue just added:** run `venue-research` on it (up to 3 web calls) and submit what it finds, so the record arrives filled in. For lists, report the newly added venues and offer to research them instead, since that can mean many web calls and approval prompts.
 - **Ambiguous** (wrong branch possible, DJ only, vague mention, identity unclear) or **nothing found:** Live Music = N with Check Notes listing what was searched and any leads. Keep it in the user's results only; don't add it to the dataset.
 - Always set Checked Date.
 - **Capture extras seen along the way at no extra cost:** website, Instagram, Facebook, booking contact or booking form, genres, admission. Don't spend extra searches on them; `venue-research` handles deeper detail later.
 
 ## Step 6 - Answer
 
-- **One venue:** say Y or N in plain words, the evidence and its date, and the link. For N: "I couldn't verify that [venue] has live music," what was checked, and an invitation to share what they know.
+- **One venue:** say Y or N in plain words, the evidence and its date, the link, and the Venue ID (existing or newly added). For N: "I couldn't verify that [venue] has live music," what was checked, and an invitation to share what they know.
 - **A list:** return the user's own list with every venue answered: the result fields above for each row, Y and N alike. Report totals (found in dataset, newly confirmed, N, excluded types, still unchecked), how many venues were added to the dataset, and notable finds (contacts, closures). Save it as a results file the user keeps; it's also the input for `band-venue-fit`.
 
 ## Disputes
@@ -130,5 +142,6 @@ If a user says an N venue does have live music:
 - Every N has Checked Date and Check Notes.
 - Shared names reviewed: evidence applied only to the location it names.
 - Re-read the weakest new Ys and downgrade any that don't hold up before adding them to the dataset.
+- Every new Y was checked against the master again with its researched details before it was added; none was added while a possible match was unresolved.
 - Only new Ys were added to the dataset (`venue-dataset` runs its own write checks).
 - Report: total supplied, found in dataset, newly confirmed and added, N, excluded types, unchecked.

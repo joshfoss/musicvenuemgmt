@@ -40,7 +40,7 @@ If the user gives only part of the required list, proceed with what you have and
 
 **Areas:** the Texas dataset currently covers Central Texas only. If the user is looking for venues elsewhere (touring acts often are), say so and work from their list or a new one.
 
-**Keep analysis in the user's act analysis file.** The venue master holds venue facts only and is never changed by this skill. Keep one act analysis file per user (for example `act-analysis.xlsx` in their folder), one row per venue keyed by Venue ID, holding only the user's own data: Drive (min), Performed, Budget, and for each act Fit, Fit Rationale, Booked, Rate, Updated. Don't copy venue facts into it; join it to the dataset by Venue ID whenever you display or rate venues, so new facts reach every view. For venues from a user's own list that aren't confirmed (N), keep their check results separately; they get no fit rating.
+**Keep analysis in the user's act analysis file.** The venue master holds venue facts only and is never changed by this skill. Keep one act analysis file per user (for example `act-analysis.xlsx` in their folder), one row per venue keyed by Venue ID, holding only the user's own data: Drive (min), Performed, Budget, and for each act Fit, Fit Rationale, Booked, Rate, Updated. Don't copy venue facts into it; join it to the dataset by Venue ID whenever you display or rate venues, so new facts reach every view. The file is a copy kept outside the master, so it doesn't update itself when venues are added, change or close: refresh it with Step 8 before relying on it, and whenever the user asks to sync or refresh their list. For venues from a user's own list that aren't confirmed (N), keep their check results separately; they get no fit rating.
 
 ## Step 4 - Research venues (when facts are missing or stale)
 
@@ -85,7 +85,25 @@ Rate each act separately when the user has more than one. Two acts with identica
 ## Step 7 - Deliver
 
 - **One venue:** reply in chat: the grade, the rationale, drive time, booking contact if known, and what to confirm before pitching.
-- **A list:** a sortable spreadsheet or dashboard, saved in the user's own workspace (never written into the dataset), with the venue columns plus, per act: Fit, Fit Rationale, Drive (min), Booked (Y/N), Rate (blank until agreed), Updated (today's date). Add a Performed column (Y if any of the user's acts has Booked = Y). Default view: Active (and Possibly closed) venues rated B or better. When the user reports a booking, a rate or a preference change, update that act's fields and its Updated date.
+- **A list:** a sortable spreadsheet or dashboard, saved in the user's own workspace (never written into the dataset), with the venue columns plus, per act: Fit, Fit Rationale, Drive (min), Booked (Y/N), Rate (blank until agreed), Updated (today's date). Add a Performed column (Y if any of the user's acts has Booked = Y). Default view: Active (and Possibly closed) venues rated B or better. When the user reports a booking, a rate or a preference change, update that act's fields and its Updated date. Record the list's sync state when you create it (Step 8), so the first refresh only reports what changed after that.
+
+## Step 8 - Refresh a saved list (sync with the master)
+
+A saved list or act analysis file is a snapshot. Refresh it when the user asks ("sync", "refresh", "update my list"), before rating or pitching from a list that hasn't been synced for a few weeks, or on a schedule the user sets up.
+
+1. **Read the sync state.** Keep it in the file itself: a small sheet named Sync with Last Synced (the as_of timestamp from the last check), State, and Counties or Cities if the list covers only part of a state. If there is no Sync sheet, this is the first refresh: leave Last Synced empty and take the area from the user's profile or the list's venues.
+2. **Check every Venue ID in one call.** Use the Venue Master connector's `check_venues` tool with all Venue IDs in the file, `since` = Last Synced, and the area (`state`, plus `counties` or `cities`). Only Venue IDs are sent: never send act names, ratings, bookings or addresses. If the tool isn't available, the connector needs reconnecting (or is older): tell the user, and fall back to `get_venue` for each ID.
+3. **Apply the results:**
+   - **archived:** remove the row. If `replaced_by` is set (a duplicate), first move anything the user added that the kept row lacks (bookings, rate, notes, Performed) onto the replaced_by row, and never drop a row with Booked = Y or a rate without saying so.
+   - **inactive** (Closed, Not actively booking, Possibly closed): keep the row and apply the blocking rule (Step 6): Closed or Not actively booking = X for every act, Possibly closed = cap at B. The default view hides X rows.
+   - **changed with rerate = true:** re-rate those venues for every act with the current facts the tool returns, rewrite Fit Rationale and set Updated to today. Changes with rerate = false (contacts, links, evidence) need no new rating.
+   - **new_in_area:** add a row per venue with the act fields blank and Fit "Needs rating", then rate them (Steps 5 and 6) unless the user only asked to sync. If the tool says more exist than it listed, narrow by counties or cities and call again.
+   - **unknown:** IDs the master has never had. Leave the rows, list them for the user, and look them up by name with `venue-dataset`.
+   - Refresh the Business Name column (if the file has one) from current facts so it doesn't drift.
+4. **Save the new sync state.** Write the tool's `as_of` as Last Synced (plus the area) in the Sync sheet, save the file, and read it back to confirm.
+5. **Report briefly:** counts of removed, newly blocked, re-rated and added venues, the venues the user had booked or performed at that changed status, and anything that needs the user's decision.
+
+A refresh changes only the user's own file; the venue master is never edited by this step.
 
 ## Privacy
 
