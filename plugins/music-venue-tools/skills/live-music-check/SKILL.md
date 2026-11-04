@@ -11,6 +11,8 @@ The TX venue dataset is a list of verified leads, read and written only through 
 
 This stage builds a lead list. Reasonable evidence that a venue hosts live musicians is enough, even if the music is only occasional; fit is judged later. But the evidence must be real and tied to the right venue at the right location.
 
+**The full sequence for a single venue not already in the dataset is: check (Steps 1-6) -> add (Step 7) -> fill in the new record (Step 7A) -> answer (Step 8).** Step 7A is not optional and is not something to offer instead of doing. A new record that goes into the master with only its music evidence is incomplete, and other users see it immediately.
+
 ## The core question
 
 Don't ask "does this look like a place with live music?" Ask: **can I point to a source showing this specific business, at this location, has hosted live musicians recently?**
@@ -65,7 +67,7 @@ Use the `venue-dataset` skill to look up every supplied venue in one pass, passi
 - **Found but closed or not booking** (per its Status): report that; no research.
 - **Possible match:** confirm it with the user as `venue-dataset` describes before treating it as found or researching it as new.
 - **Archived:** the venue was archived as closed or not booking (or was a removed duplicate). Report that, with the date, and don't research or add it. If the user says it has reopened, check for current evidence and, if it holds, file `report_status` with status Active on the archived Venue ID for the maintainer to restore it.
-- **Not found, or location unclear:** continue with Steps 3 to 7. A not-found here is provisional: Step 7 checks again with what research turns up before anything is added.
+- **Not found, or location unclear:** continue with Steps 3 to 8. A not-found here is provisional: Step 7 checks again with what research turns up before anything is added.
 
 ## Step 3 - Screen out unlikely venue types
 
@@ -79,13 +81,13 @@ Research the venue independently first. The asking act's own history is a fallba
 
 ### Budget
 
-- **One venue, or a few the user asked about by name:** up to about 8 web calls. Stop as soon as the evidence settles it, but don't answer N while a promising lead below is unchecked.
+- **One venue, or a few the user asked about by name:** up to about 8 web calls for the live music check. Stop checking as soon as the evidence settles Y or N, but don't answer N while a promising lead below is unchecked. Stopping the check early does not end the job: a newly added venue still goes through Step 7A, which has its own budget.
 - **Lists (helper agents):** 2 searches and 1 fetch per venue, as below. Venues that come back N but are high priority for the user (their A/B or weekday-viable targets) get a second pass with the single-venue order before being reported as N.
 
 ### Order (single venue)
 
 1. **A web search that surfaces social and review snippets.** Search `<venue name> <city> live music`. Search tools differ: the session's search tool may not return the Instagram, Facebook, Yelp or Google results a person sees. If the app's built-in browser (or Claude in Chrome) is available, also run the same query on Google there and read the results page text, including the business panel on the right (Google's "Live music" service option, events). Results-page snippets are evidence on their own (see below); you don't need to open the post.
-2. **The venue's Bandsintown page.** Search `"<venue name>" <city> bandsintown venue` (or Bandsintown's own venue search in the browser). A venue page exists only because shows were listed there. Read its upcoming events and its past events and fan reviews ("What fans are saying"): each review names the performer and the show date. Check the page's city matches. Songkick venue pages work the same way.
+2. **The venue's Bandsintown page.** Search `"<venue name>" <city> bandsintown venue` as its own search, not combined with other sites (or use Bandsintown's own venue search in the browser). Search tools index Bandsintown venue pages poorly, and Bandsintown blocks plain fetches, so open it in the built-in browser when one is available. A venue page exists only because shows were listed there. Read its upcoming events and its past events and fan reviews ("What fans are saying"): each review names the performer and the show date. Check the page's city matches. Songkick venue pages work the same way.
 3. **Review sites:** the venue's Yelp page (its attribute list: "Live music", noise level) and recent reviews mentioning live music, bands, a musician or a music night. Google reviews and TripAdvisor work the same way. Yelp blocks plain fetches, so read it in the built-in browser when one is available.
 4. **The venue's own site and events page,** and any social accounts it links (as search snippets or in the browser).
 5. **Other event platforms and local calendars:** the area sources from Step 1, plus `"<venue name>" <city> songkick OR allevents OR do512 OR reverbnation`. A venue page on a local calendar (Do512, ma.to) is a lead: open it and look for performers with dates.
@@ -170,15 +172,27 @@ A fallback hit also means research missed something: say in Check Notes which pu
 - **Y:** fill Music Source (the most direct link: an events page, venue page or the specific post beats a homepage), Source Type, Evidence Date, Confidence, Recurring, Open Mic Only. Then:
   1. **Check for an existing record again** through `venue-dataset` ("Before adding"), using what research found: the official name, street address, website and phone. Research often reveals that a venue the user named differently is already in the master.
   2. **A match turns up:** don't add. Follow the confirmation steps in `venue-dataset`, and carry on with the existing record if the user confirms it.
-  3. **No match:** add the venue through `venue-dataset` straight away, without asking the user first, and tell them its new Venue ID. This includes venues confirmed in Step 6: never leave adding to the user.
-  4. **One venue just added:** run `venue-research` on it (up to 3 web calls) and submit what it finds, so the record arrives filled in. For lists, report the newly added venues and offer to research them instead, since that can mean many web calls and approval prompts.
+  3. **No match:** add the venue through `venue-dataset` straight away, without asking the user first. This includes venues confirmed in Step 6: never leave adding to the user. Include every extra already captured (below) in the add.
+  4. **When `venue-dataset` returns the new Venue ID, come back here and continue to Step 7A.** The add is not the end of the job.
 - **N:** Check Notes list what was searched, what couldn't be read, and any leads. Keep it in the user's results only; don't add it to the dataset.
 - Always set Checked Date.
-- **Capture extras seen along the way at no extra cost:** website, Instagram, Facebook, Bandsintown venue page, booking contact or booking form, genres (the performers on the venue's event pages show its style), admission, noise level (Yelp's "Moderate noise" suggests a Medium listening environment), recurring nights. Don't spend extra searches on them; `venue-research` handles deeper detail later.
+- In Check Notes, keep three states apart for each source: **checked, nothing there**; **couldn't be read** (blocked or failed); and **not checked** (skipped because the answer was already settled). Never record a skipped source as checked.
+- **Capture extras seen along the way:** website, Instagram, Facebook, email, phone, Bandsintown venue page, booking contact or booking form, genres (the performers on the venue's event pages show its style), admission, noise level (Yelp's "Moderate noise" suggests a Medium listening environment), recurring nights. Event platform venue pages (Bandsintown's "About" section) often list the venue's website and phone. During the check itself, don't spend extra searches on extras; Step 7A fills the gaps.
+
+## Step 7A - Fill in a newly added venue
+
+**Required whenever this run added exactly one venue, or a few the user named.** Do it before answering, without asking first.
+
+1. Run `venue-research` on the new Venue ID with its one-venue budget (up to 3 web calls, separate from the Step 4 budget). It always starts from the venue's own homepage and records the contact and link fields (website, Facebook, Instagram, email, phone, booking contact or form) as well as the booking fields.
+2. Submit what it finds through `venue-dataset` (`update_venue`).
+3. Carry the result into the answer: what was filled in, and what is still missing.
+
+**For lists** (more than a few venues added in one run): report the newly added venues and offer to research them, since that can mean many web calls and approval prompts. This exception is for lists only; never apply it to a single venue.
 
 ## Step 8 - Answer
 
-- **One venue:** say Y or N in plain words, the evidence and its date, the link, and the Venue ID (existing or newly added). For N: "I couldn't verify that [venue] has live music," what was checked and what couldn't be read (plus the Step 6 question when the request named the user's act). If older evidence turned up, say so plainly rather than reporting nothing found: what it was, where, and the newest date. For example: "Bandsintown lists shows at Kelly's by three performers between Dec 2023 and Feb 2025, but nothing in the last 18 months, so I can't confirm it still has live music."
+- **One venue:** say Y or N in plain words, the evidence and its date, the link, and the Venue ID (existing or newly added). For a newly added venue, also say what Step 7A filled in (links, contacts, booking details) and what is still missing. For N: "I couldn't verify that [venue] has live music," what was checked and what couldn't be read (plus the Step 6 question when the request named the user's act). If older evidence turned up, say so plainly rather than reporting nothing found: what it was, where, and the newest date. For example: "Bandsintown lists shows at Kelly's by three performers between Dec 2023 and Feb 2025, but nothing in the last 18 months, so I can't confirm it still has live music."
+- **Say "not found" only about sources you actually checked.** For a Y, report the evidence that settled it and leave out sources you skipped once the answer was clear; stopping early is fine and needs no mention. If a skipped source is worth pointing to (for example, it would settle Recurring), call it "not checked" and offer to look, never "didn't find" or "no page found", which reads as if it doesn't exist.
 - **One venue confirmed for a named act:** after the answer, ask once whether the act has played there, so `band-venue-fit` can record Performed and use it in the rating. Skip the question if the act analysis already says.
 - **A list:** return the user's own list with every venue answered: the result fields above for each row, Y and N alike. Report totals (found in dataset, newly confirmed, confirmed by act history, N, of which historic only, excluded types, still unchecked), how many venues were added to the dataset, and notable finds (contacts, closures). Save it as a results file the user keeps; it's also the input for `band-venue-fit`.
 
@@ -188,7 +202,7 @@ If a user says an N venue does have live music:
 1. Ask what they know: a post, flyer, event page, a gig they played or saw, roughly when.
 2. If they share a link or screenshot, check it against the evidence rules and the venue's identity. A screenshot of a search results page, listing or venue page counts the same as the snippet or page it shows.
 3. If the app's built-in browser is available and the user is signed in to Facebook or Instagram there, offer to look at the venue's page with them.
-4. Record the outcome and add the venue yourself. A confirmed first-hand report from a musician who played there counts as Source Type "Musician report" or "User confirmed", dated, without naming the act; the venue becomes Y and is added to the dataset through `venue-dataset`. If it still can't be confirmed, keep N in the user's results and add the dispute to Check Notes.
+4. Record the outcome and add the venue yourself. A confirmed first-hand report from a musician who played there counts as Source Type "Musician report" or "User confirmed", dated, without naming the act; the venue becomes Y and is added to the dataset through `venue-dataset`, then filled in through Step 7A. If it still can't be confirmed, keep N in the user's results and add the dispute to Check Notes.
 5. Say briefly which source the check missed and why, so the miss can feed back into this skill.
 
 ## Large lists
@@ -196,19 +210,21 @@ If a user says an N venue does have live music:
 - Look up the whole list in the dataset first (one pass through `venue-dataset`); research only what isn't found.
 - Deduplicate the rest and group by area; pull area sources once per area.
 - For venue-by-venue checks, use small, cheap helper agents with batches of about 25 venues and the list budget (2 searches, 1 fetch). Run two at a time: in some apps every new website asks the user for approval, and approval cards time out with more parallel helpers. Searches usually don't trigger approvals; fetches do, so the snippet-as-evidence rules also save the user clicks.
-- Helpers return one JSON line per venue and write no files: `{"id":..,"live_music":"Y|N","source":"","source_type":"","evidence_date":"","confidence":"High|Medium|","recurring":"Yes|One-off|Unknown","open_mic_only":false,"notes":"","unread_leads":[],"extras":{"website":"","instagram":"","facebook":"","bandsintown":"","yelp":"","booking":""}}`. Paste the evidence rules above (including event platform venue pages, review sites and snippets) into each helper's prompt verbatim.
+- Helpers return one JSON line per venue and write no files: `{"id":..,"live_music":"Y|N","source":"","source_type":"","evidence_date":"","confidence":"High|Medium|","recurring":"Yes|One-off|Unknown","open_mic_only":false,"notes":"","unread_leads":[],"extras":{"website":"","instagram":"","facebook":"","email":"","phone":"","bandsintown":"","yelp":"","booking":""}}`. Paste the evidence rules above (including event platform venue pages, review sites and snippets) into each helper's prompt verbatim.
 - Collect results from saved helper transcripts with a script when possible rather than retyping them.
 - Venues lost to an unanswered approval or a search limit stay blank for a retry, not N. Venues whose only leads couldn't be read (`unread_leads`) are listed for a browser pass.
 - If the list is for the user's own act, run the Step 6 fallback only on the venues that came back N, checking the act's records in one pass, then ask about any that remain in one message.
 
-## Quality checks after each pass
+## Quality checks before answering
 
 - The user's results have one row per supplied venue; none lost or duplicated.
 - Every Y has Music Source, Source Type, Evidence Date and Confidence.
 - Every N has Checked Date and Check Notes, including the sources that couldn't be read. Every historic-only N names its sources and newest date.
 - No single-venue N without the Bandsintown venue page and a review site checked (or noted as unreadable).
+- No answer or Check Notes says a source wasn't found when it was only skipped.
 - Shared names reviewed: evidence applied only to the location it names.
 - Re-read the weakest new Ys and downgrade any that don't hold up before adding them to the dataset.
 - Every new Y was checked against the master again with its researched details before it was added; none was added while a possible match was unresolved.
+- **Every single venue added this run went through Step 7A before the answer:** its website, Facebook, Instagram, email and phone are recorded, or the answer says which couldn't be found.
 - Only new Ys were added to the dataset (`venue-dataset` runs its own write checks), and no act name went into any record.
 - Report: total supplied, found in dataset, newly confirmed and added, confirmed by act history, N, excluded types, unchecked.
