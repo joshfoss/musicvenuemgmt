@@ -9,7 +9,7 @@ Claude tools that help bands and solo acts find live music venues, check they re
 3. Install **music-venue-tools**.
 4. Open the plugin and check the **Venue Master** connector is enabled.
 
-To get updates later, click **Update** on the marketplace.
+To get updates later, click **Update** on the marketplace. See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 In Claude Code: `/plugin install music-venue-tools --marketplace joshfoss/musicvenuemgmt`
 
